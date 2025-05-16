@@ -4,6 +4,9 @@ from docx import Document
 import tempfile
 import os
 
+# ✅ Instalar ffmpeg en Streamlit Cloud
+os.system("apt-get update && apt-get install -y ffmpeg")
+
 st.set_page_config(page_title="Transcriptor de Audio", layout="centered")
 
 st.title("📝 Transcriptor de Audio con Whisper")
