@@ -12,12 +12,18 @@ st.set_page_config(page_title="Transcriptor de Audio", layout="centered")
 st.title("📝 Transcriptor de Audio con Whisper")
 st.write("Sube un archivo de audio y genera su transcripción en texto y Word.")
 
-uploaded_file = st.file_uploader("📂 Sube tu archivo de audio", type=["mp3", "wav", "m4a", "mp4", "aac"])
+uploaded_file = st.file_uploader("📂 Sube tu archivo de audio", type=["mp3", "wav", "m4a", "mp4", "aac", "dat", "unknown"])
 
 if uploaded_file is not None:
     with tempfile.NamedTemporaryFile(delete=False) as tmp:
         tmp.write(uploaded_file.read())
         tmp_path = tmp.name
+
+    # 👇 Renombrar si es .dat o .unknown a una extensión conocida (ej: .mp4)
+    if uploaded_file.name.endswith(".dat") or uploaded_file.name.endswith(".unknown"):
+        new_path = tmp_path + ".mp4"  # Cambia a .aac si tus archivos son de ese tipo
+        os.rename(tmp_path, new_path)
+        tmp_path = new_path
 
     st.info("🔄 Transcribiendo audio, espera un momento...")
 
