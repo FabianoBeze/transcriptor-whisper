@@ -3,7 +3,7 @@ import whisper
 from docx import Document
 import tempfile
 import os
-import subprocess
+import ffmpeg
 
 # ✅ Instalar ffmpeg en Streamlit Cloud
 os.system("apt-get update && apt-get install -y ffmpeg")
@@ -20,7 +20,7 @@ if uploaded_file is not None:
         tmp.write(uploaded_file.read())
         tmp_path = tmp.name
 
-    # Renombrar si es .dat o .unknown a .mp4 (para que ffmpeg lo acepte)
+    # Renombrar si es .dat o .unknown a .mp4
     if uploaded_file.name.endswith(".dat") or uploaded_file.name.endswith(".unknown"):
         new_path = tmp_path + ".mp4"
         os.rename(tmp_path, new_path)
@@ -28,16 +28,11 @@ if uploaded_file is not None:
 
     st.info("🔄 Convirtiendo audio a WAV...")
 
-    # Convertir a WAV usando ffmpeg
     wav_path = tmp_path.rsplit(".", 1)[0] + ".wav"
-    conversion = subprocess.run(
-        ["ffmpeg", "-y", "-i", tmp_path, "-ar", "16000", "-ac", "1", wav_path],
-        stdout=subprocess.PIPE,
-        stderr=subprocess.PIPE
-    )
-
-    if not os.path.exists(wav_path):
-        st.error("❌ Error al convertir el audio. Asegúrate de que el archivo contenga audio válido.")
+    try:
+        ffmpeg.input(tmp_path).output(wav_path, ar=16000, ac=1).run(quiet=True, overwrite_output=True)
+    except ffmpeg.Error as e:
+        st.error("❌ Error al convertir el audio. Asegúrate de que el archivo sea válido.")
         st.stop()
 
     st.info("🔄 Transcribiendo audio, espera un momento...")
