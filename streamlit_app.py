@@ -3,57 +3,40 @@ import whisper
 from docx import Document
 import tempfile
 import os
-import ffmpeg
-
-# ✅ Instalar ffmpeg en Streamlit Cloud
-os.system("apt-get update && apt-get install -y ffmpeg")
 
 st.set_page_config(page_title="Transcriptor de Audio", layout="centered")
 
 st.title("📝 Transcriptor de Audio con Whisper")
-st.write("Sube un archivo de audio (.mp3, .wav, .mp4, .dat, .unknown) y genera su transcripción en texto y Word.")
+st.write("Sube un archivo de audio y genera su transcripción en texto y Word. Formatos compatibles: mp3, wav, m4a, mp4, aac.")
 
-uploaded_file = st.file_uploader("📂 Sube tu archivo de audio", type=["mp3", "wav", "m4a", "mp4", "aac", "dat", "unknown"])
+uploaded_file = st.file_uploader("📂 Sube tu archivo de audio", type=["mp3", "wav", "m4a", "mp4", "aac"])
 
 if uploaded_file is not None:
-    with tempfile.NamedTemporaryFile(delete=False) as tmp:
+    with tempfile.NamedTemporaryFile(delete=False, suffix=uploaded_file.name[-4:]) as tmp:
         tmp.write(uploaded_file.read())
         tmp_path = tmp.name
 
-    # Renombrar si es .dat o .unknown a .mp4
-    if uploaded_file.name.endswith(".dat") or uploaded_file.name.endswith(".unknown"):
-        new_path = tmp_path + ".mp4"
-        os.rename(tmp_path, new_path)
-        tmp_path = new_path
-
-    st.info("🔄 Convirtiendo audio a WAV...")
-
-    wav_path = tmp_path.rsplit(".", 1)[0] + ".wav"
-    try:
-        ffmpeg.input(tmp_path).output(wav_path, ar=16000, ac=1).run(quiet=True, overwrite_output=True)
-    except ffmpeg.Error as e:
-        st.error("❌ Error al convertir el audio. Asegúrate de que el archivo sea válido.")
-        st.stop()
-
     st.info("🔄 Transcribiendo audio, espera un momento...")
 
-    model = whisper.load_model("base")
-    result = model.transcribe(wav_path, language="es")
+    try:
+        model = whisper.load_model("base")
+        result = model.transcribe(tmp_path, language="es")
 
-    st.success("✅ Transcripción completa")
-    st.subheader("📄 Texto transcrito:")
-    st.write(result["text"])
+        st.success("✅ Transcripción completa")
+        st.subheader("📄 Texto transcrito:")
+        st.write(result["text"])
 
-    doc = Document()
-    doc.add_heading("Transcripción de Audio", 0)
-    doc.add_paragraph(result["text"])
+        doc = Document()
+        doc.add_heading("Transcripción de Audio", 0)
+        doc.add_paragraph(result["text"])
 
-    word_file = "transcripcion.docx"
-    doc.save(word_file)
+        word_file = "transcripcion.docx"
+        doc.save(word_file)
 
-    with open(word_file, "rb") as f:
-        st.download_button("📥 Descargar Word", f, file_name=word_file, mime="application/vnd.openxmlformats-officedocument.wordprocessingml.document")
+        with open(word_file, "rb") as f:
+            st.download_button("📥 Descargar Word", f, file_name=word_file, mime="application/vnd.openxmlformats-officedocument.wordprocessingml.document")
 
-    os.remove(tmp_path)
-    os.remove(wav_path)
-    os.remove(word_file)
+        os.remove(tmp_path)
+        os.remove(word_file)
+    except Exception as e:
+        st.error("❌ Error al procesar el audio. Asegúrate de que el formato sea compatible.")
